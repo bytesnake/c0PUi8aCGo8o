@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# the following shows how to
+# 1. tracks file in a directory
+# 2. perform conversion to AAC for each new file
+
+readonly TRACKING=.tracked_files.log
+INPUT="input/"
+
+get_new_files() {
+    # create tracking file
+    [[ ! -f $TRACKING ]] && touch $TRACKING
+
+    local current=$(cd $1 && find -type f)
+    diff $TRACKING <(echo "${current}") | grep -oP "^>\K.*"
+    echo "${current}" > "$TRACKING"
+}
+
+actions::convert_files() {
+    for file in $(get_new_files $INPUT); do
+        if [[ ! $file =~ [a-zA-Z]+\.mp3 ]]; then
+            continue
+        fi;
+    
+        echo "Converting new file "$file
+        ffmpeg -i input/$file output/${file%.mp3}.wav -hide_banner -loglevel error
+    done
+}
+
+actions::status() {
+    num_files=$(find $INPUT -type f | grep "mp3" | wc -l)
+    echo "There are $num_files audio files in $INPUT"
+    for file in $(find $INPUT -type f | grep -v "mp3"); do
+        echo "  => "$file" is not an audio file and will be ignored"
+    done
+}
+    
+
+while getopts ":hi:" opt; do
+    case ${opt} in
+        h )
+            echo "Usage:"
+            echo "  file -h                 Display this help message"
+            echo "  file status             Print the current status"
+            exit 0
+            ;;
+        i )
+            INPUT=$OPTARG
+            ;;
+        \? )
+            echo "Invalid Option: -$OPTARG" 1>&2
+            exit 1;
+            ;;
+     esac
+done
+shift $(( OPTIND - 1))
+
+case "$1" in
+    status|check   ) actions::status ;;
+    convert|update ) actions::convert_files ;;
+    \? )
+        echo "Invalid operation: $OPTARG"
+        exit 1
+        ;;
+esac

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+while read line; do
+    readarray -td: elms <<< "$line"
+
+    if [[ ${#elms[@]} < 2 ]]; then
+        echo "We need at least two elements!"
+        exit 1
+    fi;
+
+    if [[ ${elms[0]} == "google" ]]; then
+        declare -p elms
+
+        ./google_scholar_parser.py ${elms[1]} > "people/${elms[2]}.md"
+        git add "people/${elms[2]}.md"
+    else
+        echo "Don't know ${elms[0]}!"
+        exit 1
+    fi;
+done
+
+#git commit -m "Update literature"

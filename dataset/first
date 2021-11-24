@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# the following shows how to
+# 1. tracks file in a directory
+# 2. perform conversion to AAC for each new file
+
+readonly TRACKING=.tracked_files.log
+
+check_new_files() {
+    # create tracking file
+    [[ ! -f $TRACKING ]] && touch $TRACKING
+
+    local current=$(cd $1 && find -type f | sort)
+    comm -13 $TRACKING <(echo "${current}")
+    echo "${current}" > "$TRACKING"
+}
+
+for file in $(check_new_files input); do
+    if [[ ! $file =~ [a-zA-Z]+\.mp3 ]]; then
+        echo "File $file is not a MP3!"
+        continue
+    fi;
+
+    echo "Converting new file "$file
+    ffmpeg -y -i input/$file output/${file%.mp3}.wav -hide_banner -loglevel error
+done
